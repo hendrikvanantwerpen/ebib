@@ -1129,7 +1129,7 @@ for each file anyway."
   (let (all-entry-files)
     (cl-labels
         ((file-exists-in-db-p (fp)
-                              (if (member (locate-file fp ebib-file-search-dirs) all-entry-files)
+                              (if (member (locate-file fp (ebib--file-search-dirs)) all-entry-files)
                                   t))
          (add-file-entry (fp)
                          (cond
@@ -1146,14 +1146,14 @@ for each file anyway."
                            (error "Invalid file %s" fp)))))
       ;;prompt for file
       (if (and (null filepath) (null disable-prompt))
-          (setq filepath (read-file-name "Add file or directory: " (file-name-as-directory (car ebib-file-search-dirs)))))
+          (setq filepath (read-file-name "Add file or directory: " (file-name-as-directory (car (ebib--file-search-dirs))))))
       ;;collect all file paths from db entries into single list
       (unless allow-duplicates
         (cl-dolist (entry-key (ebib-db-list-keys db 'nosort))
           (let ((entry-files (ebib-db-get-field-value ebib-file-field entry-key db 'noerror 'unbraced)))
             (if entry-files
                 (cl-dolist (fp (split-string entry-files ebib-filename-separator))
-                  (push (locate-file fp ebib-file-search-dirs) all-entry-files))))))
+                  (push (locate-file fp (ebib--file-search-dirs)) all-entry-files))))))
       (add-file-entry filepath)
       (ebib-db-set-current-entry-key t ebib--cur-db)
       (ebib--redisplay))))
@@ -2041,11 +2041,8 @@ opened. If N is NIL, the user is asked to enter a number."
         (setq n 1))
     (let* ((file (nth (1- n) files))
            (file-full-path
-            (or (and ebib-file-search-relative-to-bib-file
-                     (locate-file file
-                                  (list (file-name-directory (ebib-db-get-filename ebib--cur-db)))))
-                (locate-file file ebib-file-search-dirs)
-                (locate-file (file-name-nondirectory file) ebib-file-search-dirs)
+            (or (locate-file file (ebib--file-search-dirs))
+                (locate-file (file-name-nondirectory file) (ebib--file-search-dirs))
                 (expand-file-name file))))
       (if (file-exists-p file-full-path)
           (let ((ext (file-name-extension file-full-path)))
@@ -2057,6 +2054,11 @@ opened. If N is NIL, the user is asked to enter a number."
               (ebib-lower)
               (find-file file-full-path)))
         (error "File not found: `%s'" file)))))
+
+(defun ebib--file-search-dirs ()
+  (if ebib-file-search-current-db-dir
+      (cons (ebib-db-get-directory ebib--cur-db) ebib-file-search-dirs)
+    ebib-file-search-dirs))
 
 (defun ebib-set-dialect (dialect)
   "Set the BibTeX dialect of the current database.
@@ -2582,7 +2584,7 @@ the beginning of the current line."
 Filenames are added to the standard file field separated by
 `ebib-filename-separator'. The first directory in
 `ebib-file-search-dirs' is used as the start directory."
-  (let ((start-dir (file-name-as-directory (car ebib-file-search-dirs))))
+  (let ((start-dir (file-name-as-directory (car (ebib--file-search-dirs)))))
     (cl-loop for file = (read-file-name "Add file (ENTER to finish): " start-dir nil 'confirm-after-completion)
              until (or (string= file "")
                        (string= file start-dir))
@@ -2605,7 +2607,7 @@ If FILE is not in (a subdirectory of) one of the directories in
                                     (let ((rel-name (file-relative-name file dir)))
                                       (unless (string-prefix-p ".." rel-name)
                                         rel-name)))
-                                  ebib-file-search-dirs)))
+                                  (ebib--file-search-dirs))))
          ;; Then we take the shortest one...
          (name (car (sort names (lambda (x y)
                                   (< (length x) (length y)))))))

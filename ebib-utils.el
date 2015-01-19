@@ -417,9 +417,8 @@ names, as long as they're not followed by a space."
   :group 'ebib
   :type 'string)
 
-(defcustom ebib-file-search-relative-to-bib-file t
-  "When viewing external files, search relative to the directory
-of the Bib file."
+(defcustom ebib-file-search-current-db-dir t
+  "Include the directory of the current DB in `ebib-file-search-dirs'."
   :group 'ebib
   :type 'boolean)
 

@@ -472,6 +472,10 @@ return the full path."
       (file-name-nondirectory (ebib--db-struct-filename db))
     (ebib--db-struct-filename db)))
 
+(defun ebib-db-get-directory (db)
+  "Return the directory of DB."
+  (file-name-directory (ebib--db-struct-filename db)))
+
 (defun ebib-db-marked-entries-p (db)
   "Return T if there are marked enries in DB."
   (ebib--db-struct-marked-entries db))
