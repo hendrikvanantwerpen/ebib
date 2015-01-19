@@ -2041,7 +2041,10 @@ opened. If N is NIL, the user is asked to enter a number."
         (setq n 1))
     (let* ((file (nth (1- n) files))
            (file-full-path
-            (or (locate-file file ebib-file-search-dirs)
+            (or (and ebib-file-search-relative-to-bib-file
+                     (locate-file file
+                                  (list (file-name-directory (ebib-db-get-filename ebib--cur-db)))))
+                (locate-file file ebib-file-search-dirs)
                 (locate-file (file-name-nondirectory file) ebib-file-search-dirs)
                 (expand-file-name file))))
       (if (file-exists-p file-full-path)

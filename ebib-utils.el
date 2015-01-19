@@ -417,6 +417,12 @@ names, as long as they're not followed by a space."
   :group 'ebib
   :type 'string)
 
+(defcustom ebib-file-search-relative-to-bib-file t
+  "When viewing external files, search relative to the directory
+of the Bib file."
+  :group 'ebib
+  :type 'boolean)
+
 (defcustom ebib-file-search-dirs '("~")
   "List of directories to search when viewing external files.
 Note that searching is not recursive: only the files listed here
