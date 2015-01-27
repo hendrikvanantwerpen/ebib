@@ -2006,7 +2006,7 @@ is NIL, the user is asked which URL to open."
         (if ebib-browser-command
             (progn
               (message "Executing `%s %s'" ebib-browser-command url)
-              (start-process "Ebib--browser" nil ebib-browser-command url))
+              (call-process ebib-browser-command nil 0 nil url))
           (message "Opening `%s'" url)
           (browse-url url))))))
 
@@ -2049,7 +2049,7 @@ opened. If N is NIL, the user is asked to enter a number."
             (ebib--ifstring (viewer (cdr (assoc ext ebib-file-associations)))
                 (progn
                   (message "Executing `%s %s'" viewer file-full-path)
-                  (start-process (concat "ebib " ext " viewer process") nil viewer file-full-path))
+                  (call-process viewer nil 0 nil file-full-path))
               (message "Opening `%s'" file-full-path)
               (ebib-lower)
               (find-file file-full-path)))
