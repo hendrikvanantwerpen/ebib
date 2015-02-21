@@ -2773,10 +2773,10 @@ The deleted text is not put in the kill ring."
   (interactive)
   (let ((field (ebib--current-field)))
     (unless (member-ignore-case field '("=type=" "crossref"))
-      (let ((text (ebib-db-get-field-value field (ebib--cur-entry-key) ebib--cur-db 'noerror 'unbraced)))
+      (let ((text (ebib-db-get-field-value field (ebib--cur-entry-key) ebib--cur-db 'noerror)))
         (if (ebib-db-unbraced-p text) ; unbraced fields cannot be multiline
             (beep)
-          (ebib--multiline-edit (list 'fields ebib--cur-db (ebib--cur-entry-key) field) text))))))
+          (ebib--multiline-edit (list 'fields ebib--cur-db (ebib--cur-entry-key) field) (ebib-db-unbrace text)))))))
 
 (defun ebib-insert-abbreviation ()
   "Insert an abbreviation from the ones defined in the database."
