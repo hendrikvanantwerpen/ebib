@@ -6,7 +6,7 @@
 ;; Author: Joost Kremers <joostkremers@fastmail.fm>
 ;; Maintainer: Joost Kremers <joostkremers@fastmail.fm>
 ;; Created: 2014
-;; Version: 2.0
+;; Version: 2.2
 ;; Keywords: text bibtex
 ;; Package-Requires: ((dash "2.5.0") (emacs "24.3"))
 
@@ -168,7 +168,7 @@ can use just the right part of the frame (the width can be
 specified with the option `ebib-width'). A third option is to
 display only the index window upon startup. The entry buffer will
 be displayed when you edit an entry of if you press
-\\[ebib--select-and-popup-entry]."
+\\[ebib-select-and-popup-entry]."
   :group 'ebib-windows
   :type '(choice (const :tag "Use full frame" full)
                  (const :tag "Use right part of the frame" custom)
@@ -650,6 +650,12 @@ Ebib (not Emacs)."
   "Face for field names."
   :group 'ebib-faces)
 
+(defface ebib-nonpermanent-keyword-face '((t (:inherit error)))
+  "Face for keywords that have not been made permanent.
+Keywords can be made permanent by storing them in
+`ebib-keywords-list' or by saving them in a file."
+  :group 'ebib-faces)
+
 ;; generic for all databases
 
 ;; constants and variables that are set only once
@@ -692,12 +698,9 @@ Ebib (not Emacs)."
 (defvar ebib--export-filename nil "Filename to export entries to.")
 (defvar ebib--push-buffer nil "Buffer to push entries to.")
 (defvar ebib--search-string nil "Stores the last search string.")
-(defvar ebib--editing nil "Indicates what the user is editing, either 'fields or 'preamble.")
-(defvar ebib--multiline-unbraced nil "Indicates whether the multiline text being edited is braced.")
+(defvar ebib--multiline-info nil "Stores the entry and field being edited.")
 (defvar ebib--log-error nil "Indicates whether an error was logged.")
-(defvar ebib--local-bibtex-filenames nil
-  "A buffer-local variable holding a list of the name(s) of that buffer's .bib file(s)")
-(make-variable-buffer-local 'ebib--local-bibtex-filenames)
+(defvar-local ebib--local-bibtex-filenames nil "A list of a buffer's .bib file(s)")
 (put 'ebib--local-bibtex-filenames 'safe-local-variable (lambda (v) (null (--remove (stringp it) v))))
 
 ;; The databases
@@ -964,8 +967,9 @@ REMOVE can be a regular expression."
 
 (defun ebib--first-line (string)
   "Return the first line of a multiline string."
-  (string-match "\n" string)
-  (substring string 0 (match-beginning 0)))
+  (if (string-match "\n" string)
+      (substring string 0 (match-beginning 0))
+    string))
 
 (defun ebib--sort-in-buffer (limit str)
   "Move POINT to the right position to insert STR in the current buffer.
@@ -1054,11 +1058,6 @@ This can be used to check if the user provided a numeric prefix
 argument to a function or not."
   (when (numberp num)
     num))
-
-(defun ebib--called-with-prefix ()
-  "Return T if the calling command was called with a prefix key."
-  (member (event-convert-list (list ebib--prefix-key))
-          (append (this-command-keys-vector) nil)))
 
 ;; TODO The exporting macros and functions should be rewritten...
 

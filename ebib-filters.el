@@ -6,7 +6,7 @@
 ;; Author: Joost Kremers <joostkremers@fastmail.fm>
 ;; Maintainer: Joost Kremers <joostkremers@fastmail.fm>
 ;; Created: 2014
-;; Version: 2.0
+;; Version: 2.2
 ;; Keywords: text bibtex
 
 ;; Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@
 ;; The filters keymap
 (eval-and-compile
   (define-prefix-command 'ebib-filters-map)
-  (suppress-keymap 'ebib-filters-map)
+  (suppress-keymap 'ebib-filters-map 'no-digits)
   (define-key ebib-filters-map "&" 'ebib-filters-logical-and)
   (define-key ebib-filters-map "|" 'ebib-filters-logical-or)
   (define-key ebib-filters-map "~" 'ebib-filters-logical-not)

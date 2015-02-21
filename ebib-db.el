@@ -6,7 +6,7 @@
 ;; Author: Joost Kremers <joostkremers@fastmail.fm>
 ;; Maintainer: Joost Kremers <joostkremers@fastmail.fm>
 ;; Created: 2003
-;; Version: 2.0
+;; Version: 2.2
 ;; Keywords: text bibtex
 
 ;; Redistribution and use in source and binary forms, with or without
@@ -197,7 +197,7 @@ is suffixed, then `ab' etc."
   "Return a list of keys in DB.
 The list is sorted, unless NOSORT is non-nil."
   (let (keys-list)
-    (maphash #'(lambda (key _value)
+    (maphash #'(lambda (key _)
 		 (push key keys-list))
 	     (ebib--db-struct-database db))
     (if nosort
@@ -371,8 +371,11 @@ set IF-EXISTS to 'overwrite."
     (unless old-string
       (setf (ebib--db-struct-strings db)
 	    (if (null value)
-		strings-list
-	      (push (cons abbr (ebib-db-brace value)) strings-list))))))
+                strings-list
+              ;; put the new string at the end of the list, to keep them in
+              ;; the order in which they appear in the .bib file. this is
+              ;; preferable for version control.
+              (append strings-list (list (cons abbr (ebib-db-brace value)))))))))
 
 (defun ebib-db-remove-string (abbr db)
   "Remove @STRING definition from DB."
@@ -516,9 +519,10 @@ unmarked."
 (defun ebib-db-list-marked-entries (db &optional nosort)
   "Return a list of entry keys of all marked entries in DB.
 The list is sorted, unless NOSORT is non-nil."
-  (if nosort
-      (sort (ebib--db-struct-marked-entries db) #'string<)
-    (ebib--db-struct-marked-entries db)))
+  (let ((entries (copy-sequence (ebib--db-struct-marked-entries db))))
+    (if nosort
+        (sort entries  #'string<)
+      entries)))
 
 (defun ebib-db-filtered-p (db)
   "Return T if a filter exists for DB."

@@ -6,7 +6,7 @@
 ;; Author: Joost Kremers <joostkremers@fastmail.fm>
 ;; Maintainer: Joost Kremers <joostkremers@fastmail.fm>
 ;; Created: 2014
-;; Version: 2.0
+;; Version: 2.2
 ;; Keywords: text bibtex
 
 ;; Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'dash)
 (require 'ebib-utils)
 (require 'ebib-db)
 
@@ -129,6 +130,32 @@ Also automatically remove duplicates."
     (let ((dir (or (file-name-directory ebib-keywords-file)      ; a single keywords file
                    (file-name-directory (ebib-db-get-filename db)))))    ; per-directory keywords files
       (push keyword (cl-third (assoc dir ebib--keywords-files-alist))))))
+
+(defun ebib--keywords-to-list (str)
+  "Convert STR to a list of keywords.
+STR should be a string containing keywords separated by
+`ebib-keywords-separator'."
+  ;; TODO I use `replace-regexp-in-string' to trim the individual strings.
+  ;; In Emacs 24.4, `split-string' has an additional argument that does
+  ;; this, but that's not available in 24.3. An alternative would be
+  ;; `s-trim' from the `s' library.
+  (--map (replace-regexp-in-string "\\`[[:space:]]*\\(.*?\\)[[:space:]]*\\'" "\\1" it t)
+         (split-string str (regexp-quote ebib-keywords-separator) t)))
+
+(defun ebib--keywords-sort (keywords)
+  "Sort the KEYWORDS string, remove duplicates, and return it as a string.
+Note: KEYWORDS should be unbraced."
+  (mapconcat 'identity
+             (sort (delete-dups (ebib--keywords-to-list keywords))
+                   'string<)
+             ebib-keywords-separator))
+
+(defun ebib--keywords-remove-existing (keywords db)
+  "Remove keywords from KEYWORDS that already exist in DB.
+KEYWORDS is a list of keywords. The return value is a list of
+keywords that do not exist in DB."
+  (let ((all-keywords (ebib--keywords-for-database db)))
+    (--remove (member-ignore-case it all-keywords) keywords)))
 
 (defun ebib--keywords-for-database (db)
   "Return the list of keywords for database DB.
