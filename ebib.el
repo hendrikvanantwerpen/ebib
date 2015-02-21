@@ -1351,7 +1351,7 @@ added to the entry, possibly overwriting an existing timestamp."
                           (ebib--special-field-p (car field))
                           (and (cl-equalp (car field) "timestamp") timestamp ebib-use-timestamp))
                 (insert (format "\t%s = %s,\n" (car field) (cdr field)))))
-            (sort entry (lambda (f1 f2) (string< (car f1) (car f2)))))
+            (sort (copy-tree entry) (lambda (f1 f2) (string< (car f1) (car f2)))))
       (if (and timestamp ebib-use-timestamp)
           (insert (format "\ttimestamp = {%s}" (format-time-string ebib-timestamp-format)))
         (delete-char -2))               ; the final ",\n" must be deleted
