@@ -2020,6 +2020,19 @@ argument can be used to specify which file to choose."
 FILENAME can also be a string of filenames separated by
 `ebib-filename-separator', in which case the Nth file is
 opened. If N is NIL, the user is asked to enter a number."
+  (ebib--call-file-function
+   (lambda (file-full-path prefiles postfiles)
+     (let ((ext (file-name-extension file-full-path)))
+       (ebib--ifstring (viewer (cdr (assoc ext ebib-file-associations)))
+           (progn
+             (message "Executing `%s %s'" viewer file-full-path)
+             (call-process viewer nil 0 nil file-full-path))
+         (message "Opening `%s'" file-full-path)
+         (ebib-lower)
+         (find-file file-full-path))))
+   filename n))
+
+(defun ebib--call-file-function (f filename &optional n)
   (let ((files (split-string filename (regexp-quote ebib-filename-separator) t)))
     (cond
      ((null (cdr files))                ; there's only one file
@@ -2030,19 +2043,16 @@ opened. If N is NIL, the user is asked to enter a number."
             (> n (length files)))
         (setq n 1))
     (let* ((file (nth (1- n) files))
+           (prefiles (when (> n 1)
+                       (let ((prefiles (copy-tree files)))
+                         (setcdr (nthcdr (- n 2) prefiles) nil))))
+           (postfiles (nthcdr n files))
            (file-full-path
             (or (locate-file file (ebib--file-search-dirs))
                 (locate-file (file-name-nondirectory file) (ebib--file-search-dirs))
                 (expand-file-name file))))
       (if (file-exists-p file-full-path)
-          (let ((ext (file-name-extension file-full-path)))
-            (ebib--ifstring (viewer (cdr (assoc ext ebib-file-associations)))
-                (progn
-                  (message "Executing `%s %s'" viewer file-full-path)
-                  (call-process viewer nil 0 nil file-full-path))
-              (message "Opening `%s'" file-full-path)
-              (ebib-lower)
-              (find-file file-full-path)))
+          (funcall f file-full-path prefiles postfiles)
         (error "File not found: `%s'" file)))))
 
 (defun ebib--file-search-dirs ()
@@ -2404,7 +2414,7 @@ a logical `not' is applied to the selection."
     (define-key map "h" 'ebib-entry-help)
     (define-key map "j" 'ebib-next-field)
     (define-key map "k" 'ebib-prev-field)
-    (define-key map "m" 'ebib-edit-multiline-field)
+    (define-key map "m" 'ebib-move-file-or-edit-multiline-field)
     (define-key map [(control n)] 'ebib-next-field)
     (define-key map [(meta n)] 'ebib-goto-prev-set)
     (define-key map [(control p)] 'ebib-prev-field)
@@ -2768,6 +2778,15 @@ The deleted text is not put in the kill ring."
             (ebib--redisplay-current-field)
             (ebib--set-modified t)))))))
 
+(defun ebib-move-file-or-edit-multiline-field (num)
+  "Move a file from the file field or edit the current field in
+multiline-mode."
+  (interactive "P")
+  (let ((field (ebib--current-field)))
+    (if (cl-equalp field ebib-file-field)
+        (ebib-move-file num)
+      (ebib-edit-multiline-field))))
+
 (defun ebib-edit-multiline-field ()
   "Edit the current field in multiline-mode."
   (interactive)
@@ -2777,6 +2796,30 @@ The deleted text is not put in the kill ring."
         (if (ebib-db-unbraced-p text) ; unbraced fields cannot be multiline
             (beep)
           (ebib--multiline-edit (list 'fields ebib--cur-db (ebib--cur-entry-key) field) (ebib-db-unbrace text)))))))
+
+(defun ebib-move-file (num)
+  "Move a file in the file field."
+  (interactive "P")
+  (let ((field (ebib--current-field)))
+    (if (not (cl-equalp field ebib-file-field))
+        (beep)
+      (let* ((filename (ebib-db-get-field-value ebib-file-field (ebib--cur-entry-key)
+                                                ebib--cur-db 'noerror 'unbraced 'xref)))
+        (ebib--call-file-function
+         (lambda (file-full-path prefiles postfiles)
+           (let* ((newfilename
+                   (expand-file-name
+                    (read-file-name "New filename: " (file-name-directory file-full-path)
+                                    nil nil (file-name-nondirectory file-full-path))))
+                  (short-file (ebib--file-relative-name newfilename))
+                  (new-conts (mapconcat 'identity (append prefiles (list short-file) postfiles) ebib-filename-separator)))
+             (catch 'file-already-exists
+               (rename-file file-full-path newfilename 0)
+               (ebib-db-set-field-value ebib-file-field new-conts
+                                        (ebib--cur-entry-key) ebib--cur-db 'overwrite)
+               (ebib--redisplay-current-field)
+               (ebib--set-modified t))))
+         filename num)))))
 
 (defun ebib-insert-abbreviation ()
   "Insert an abbreviation from the ones defined in the database."
